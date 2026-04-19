@@ -1,6 +1,4 @@
 // ERP Companion — Google Search content script
-// Intercepts search queries and asks the service worker whether the query
-// semantically resembles a logged obsession.
 
 (function () {
   'use strict'
@@ -11,18 +9,41 @@
     return new URLSearchParams(location.search).get('q') || ''
   }
 
-  function maybeNotify() {
+  function showOverlay() {
+    if (document.getElementById('erp-overlay')) return
+    const div = document.createElement('div')
+    div.id = 'erp-overlay'
+    Object.assign(div.style, {
+      position: 'fixed',
+      inset: '0',
+      background: '#fff',
+      zIndex: '2147483647',
+    })
+    ;(document.documentElement || document).appendChild(div)
+  }
+
+  function removeOverlay() {
+    document.getElementById('erp-overlay')?.remove()
+  }
+
+  async function maybeNotify() {
     const q = getQuery()
     if (!q || q === lastSentQuery) return
     lastSentQuery = q
-    chrome.runtime.sendMessage({ type: 'SEARCH_QUERY', query: q })
+
+    showOverlay()
+
+    try {
+      const result = await chrome.runtime.sendMessage({ type: 'SEARCH_QUERY', query: q })
+      if (!result?.blocked) removeOverlay()
+      // if blocked, SW redirects the tab — overlay disappears with the page
+    } catch {
+      removeOverlay()
+    }
   }
 
-  // Initial page load.
   maybeNotify()
 
-  // Google SPA navigation: Google updates the URL via history.pushState without
-  // a full page reload. Monkey-patch the history methods to catch these transitions.
   ;['pushState', 'replaceState'].forEach(method => {
     const original = history[method].bind(history)
     history[method] = function (...args) {

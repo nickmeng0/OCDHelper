@@ -17,8 +17,13 @@ describe('checkQuery — keyword match', () => {
     expect(result.mechanism).toBe('keyword')
   })
 
-  it('skips short tokens (<= 3 chars)', () => {
-    const result = checkQuery('the cat sat', { blockList: ['cat', 'sat', 'the'] })
+  it('matches short words (3 chars or fewer) by word boundary', () => {
+    const result = checkQuery('my car is dirty', { blockList: ['car'] })
+    expect(result.blocked).toBe(true)
+  })
+
+  it('does not match a short word inside a longer word', () => {
+    const result = checkQuery('cartoon network', { blockList: ['car'] })
     expect(result.blocked).toBe(false)
   })
 

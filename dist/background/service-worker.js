@@ -57,53 +57,44 @@ function sendToOffscreen(message) {
 
 // ─── Query checking (runs inline — no offscreen round-trip) ──────────────────
 
-function tokenize(text) {
-  return [...new Set(
-    text.toLowerCase().split(/\W+/).filter(w => w.length > 3 && /^[a-z]+$/.test(w))
-  )]
-}
 
 async function handleSearchQuery(query, tabId) {
   try {
     const { blockList: rawBlockList = [] } = await chrome.storage.local.get(['blockList'])
     const blockList = rawBlockList.filter(w => typeof w === 'string')
-    if (!blockList.length) return
 
     const lowerQuery = query.toLowerCase()
-    const queryWords = new Set(tokenize(query))
     let matchedTerm = null
     for (const term of blockList) {
       const lowerTerm = term.toLowerCase()
       const matched = lowerTerm.includes(' ')
         ? lowerQuery.includes(lowerTerm)
-        : queryWords.has(lowerTerm)
+        : new RegExp(`\\b${lowerTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`).test(lowerQuery)
       if (matched) { matchedTerm = term; break }
     }
     if (matchedTerm) {
       console.log(`[ERP] Query blocked: "${query}" matched keyword "${matchedTerm}"`)
       const params = { site: 'google.com', mechanism: 'keyword', query, term: matchedTerm }
       await chrome.tabs.update(tabId, { url: getInterventionUrl(params) })
-      return
+      return { blocked: true }
     }
 
     // ── Mechanism 2: NLI entailment check ──────────────────────────────────────
-    // TODO: read obsessionLogs from storage
-    // const { obsessionLogs = [] } = await chrome.storage.local.get(['obsessionLogs'])
-    // const obsessions = obsessionLogs.map(log => log.text)
+    const { obsessionLogs = [] } = await chrome.storage.local.get(['obsessionLogs'])
+    const obsessions = obsessionLogs.map(log => log.text).filter(Boolean)
+    if (!obsessions.length) return { blocked: false }
 
-    // TODO: send CHECK_ENTAILMENT to offscreen
-    // await ensureOffscreen()
-    // const entailResult = await sendToOffscreen({
-    //   type: 'CHECK_ENTAILMENT',
-    //   query,
-    //   obsessions,
-    // })
+    await ensureOffscreen()
+    const entailResult = await sendToOffscreen({ type: 'CHECK_ENTAILMENT', query, obsessions })
+    if (!entailResult?.blocked) return { blocked: false }
 
-    // TODO: if entailResult.blocked:
-    // const params = { site: 'google.com', mechanism: 'entailment', query, term: entailResult.matchedObsession }
-    // await chrome.tabs.update(tabId, { url: getInterventionUrl(params) })
+    console.log(`[ERP] Query blocked by entailment: "${query}" matched "${entailResult.matchedObsession}" (score=${entailResult.score?.toFixed(2)})`)
+    const entailParams = { site: 'google.com', mechanism: 'entailment', query, term: entailResult.matchedObsession }
+    await chrome.tabs.update(tabId, { url: getInterventionUrl(entailParams) })
+    return { blocked: true }
   } catch (err) {
     console.warn('[ERP] handleSearchQuery error:', err.message)
+    return { blocked: false }
   }
 }
 
@@ -183,8 +174,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   switch (message.type) {
     case 'SEARCH_QUERY': {
       const tabId = sender.tab?.id
-      if (tabId) handleSearchQuery(message.query, tabId)
-      return false
+      if (!tabId) { sendResponse({ blocked: false }); return true }
+      handleSearchQuery(message.query, tabId)
+        .then(sendResponse)
+        .catch(() => sendResponse({ blocked: false }))
+      return true
     }
 
     case 'PROCESS_NEW_ENTRY':
