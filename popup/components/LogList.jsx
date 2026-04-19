@@ -1,3 +1,15 @@
+function distressColor(level) {
+  if (level <= 3) return '#16a34a'
+  if (level <= 6) return '#d97706'
+  return '#dc2626'
+}
+
+function distressLabel(level) {
+  if (level <= 3) return 'mild'
+  if (level <= 6) return 'moderate'
+  return 'extreme'
+}
+
 function LogList({ logs, onDelete }) {
   if (!logs.length) {
     return (
@@ -47,9 +59,24 @@ function LogList({ logs, onDelete }) {
               ✕
             </button>
           </div>
-          <p style={{ margin: '6px 0 0', fontSize: '0.74em', color: '#9ca3af' }}>
-            {new Date(log.timestamp).toLocaleString()}
-          </p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 6 }}>
+            <p style={{ margin: 0, fontSize: '0.74em', color: '#9ca3af', flex: 1 }}>
+              {new Date(log.timestamp).toLocaleString()}
+            </p>
+            {log.distress != null && (
+              <span style={{
+                fontSize: '0.74em',
+                fontWeight: 600,
+                color: distressColor(log.distress),
+                background: 'rgba(0,0,0,0.04)',
+                borderRadius: 6,
+                padding: '2px 7px',
+                whiteSpace: 'nowrap',
+              }}>
+                {log.distress}/10 — {distressLabel(log.distress)}
+              </span>
+            )}
+          </div>
         </div>
       ))}
     </div>

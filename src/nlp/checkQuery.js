@@ -39,9 +39,8 @@ async function getClassifier() {
 }
 
 const SEARCH_HYPOTHESES = [
-  q => `I am searching for information about ${q}`,
-  q => `I want to find out about ${q}`,
-  q => `I am obsessively looking up ${q}`,
+  q => `I am obsessively searching for information about ${q}`,
+  q => `I really want to find out ${q}`,
 ]
 
 export async function checkEntailment(query, obsessions, { threshold = 0.5 } = {}) {
