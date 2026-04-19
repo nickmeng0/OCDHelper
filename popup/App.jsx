@@ -9,6 +9,50 @@ const TABS = [
   { id: 'blocklist', label: 'Block List' },
 ]
 
+const styles = {
+  root: {
+    width: 400,
+    minHeight: 500,
+    display: 'flex',
+    flexDirection: 'column',
+  },
+  header: {
+    padding: '20px 20px 0',
+  },
+  title: {
+    fontSize: '1.15em',
+    fontWeight: 700,
+    color: '#1e1b4b',
+    letterSpacing: '-0.3px',
+  },
+  tabBar: {
+    display: 'flex',
+    gap: 0,
+    margin: '16px 0 0',
+    borderBottom: '1px solid #e0e0f0',
+  },
+  content: {
+    padding: '20px',
+    flex: 1,
+  },
+}
+
+function tabStyle(active) {
+  return {
+    padding: '8px 14px',
+    background: 'none',
+    border: 'none',
+    borderBottom: active ? '2px solid #6366f1' : '2px solid transparent',
+    color: active ? '#6366f1' : '#6b7280',
+    fontWeight: active ? 600 : 400,
+    cursor: 'pointer',
+    fontSize: '0.875em',
+    letterSpacing: '0.1px',
+    transition: 'color 0.15s',
+    marginBottom: -1,
+  }
+}
+
 function App() {
   const [tab, setTab] = useState('log')
   const [logs, setLogs] = useState([])
@@ -46,7 +90,6 @@ function App() {
 
   const deleteLog = useCallback(async id => {
     const { obsessionLogs = [], blockList = [] } = await chrome.storage.local.get(['obsessionLogs', 'blockList'])
-
     const toDelete = obsessionLogs.find(log => log.id === id)
     const next = obsessionLogs.filter(log => log.id !== id)
     const updates = { obsessionLogs: next }
@@ -106,43 +149,33 @@ function App() {
     })
   }, [])
 
-  if (!ready) return <div style={{ padding: 16 }}>Loading…</div>
+  if (!ready) return <div style={{ padding: 24, color: '#6b7280' }}>Loading…</div>
 
   return (
-    <div style={{ width: 400, padding: 16, fontFamily: 'sans-serif' }}>
-      <h1 style={{ fontSize: '1.1em', margin: '0 0 12px' }}>ERP Companion</h1>
-
-      <div style={{ display: 'flex', gap: 2, marginBottom: 16, borderBottom: '1px solid #ddd', paddingBottom: 8, flexWrap: 'wrap' }}>
-        {TABS.map(t => (
-          <button
-            key={t.id}
-            onClick={() => setTab(t.id)}
-            style={{
-              padding: '4px 10px',
-              fontWeight: tab === t.id ? 'bold' : 'normal',
-              borderBottom: tab === t.id ? '2px solid #333' : '2px solid transparent',
-              background: 'none',
-              border: 'none',
-              borderBottom: tab === t.id ? '2px solid #333' : '2px solid transparent',
-              cursor: 'pointer',
-              fontSize: '0.9em',
-            }}
-          >
-            {t.label}
-          </button>
-        ))}
+    <div style={styles.root}>
+      <div style={styles.header}>
+        <h1 style={styles.title}>ERP Companion</h1>
+        <div style={styles.tabBar}>
+          {TABS.map(t => (
+            <button key={t.id} onClick={() => setTab(t.id)} style={tabStyle(tab === t.id)}>
+              {t.label}
+            </button>
+          ))}
+        </div>
       </div>
 
-      {tab === 'log' && <ObsessionLogger onLog={saveLog} onLogUpdate={updateLog} />}
-      {tab === 'history' && <LogList logs={logs} onDelete={deleteLog} />}
-      {tab === 'blocklist' && (
-        <BlockListManager
-          blockList={urlBlockList}
-          onAdd={addBlockItem}
-          onRemove={removeBlockItem}
-          onToggle={toggleBlockItem}
-        />
-      )}
+      <div style={styles.content}>
+        {tab === 'log' && <ObsessionLogger onLog={saveLog} onLogUpdate={updateLog} />}
+        {tab === 'history' && <LogList logs={logs} onDelete={deleteLog} />}
+        {tab === 'blocklist' && (
+          <BlockListManager
+            blockList={urlBlockList}
+            onAdd={addBlockItem}
+            onRemove={removeBlockItem}
+            onToggle={toggleBlockItem}
+          />
+        )}
+      </div>
     </div>
   )
 }

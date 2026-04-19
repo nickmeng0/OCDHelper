@@ -38,27 +38,34 @@ async function getClassifier() {
   return _classifier
 }
 
+const SEARCH_HYPOTHESES = [
+  q => `I am searching for information about ${q}`,
+  q => `I want to find out about ${q}`,
+  q => `I am obsessively looking up ${q}`,
+]
+
 export async function checkEntailment(query, obsessions, { threshold = 0.5 } = {}) {
   if (!obsessions.length) return { blocked: false }
 
   const classify = await getClassifier()
-  // Each obsession is the premise; the search is the hypothesis.
-  // NLI direction: does this obsession entail that I'd make this search?
-  const searchHypothesis = `I am searching for information about ${query}`
+  const hypotheses = SEARCH_HYPOTHESES.map(fn => fn(query))
 
-  const results = await classify(obsessions, [searchHypothesis], {
+  // Premises = obsessions, hypotheses = all search framings.
+  // multi_label scores every (obsession, hypothesis) pair independently.
+  // NLI direction: does this obsession entail that I'd make this search?
+  const results = await classify(obsessions, hypotheses, {
     multi_label: true,
     hypothesis_template: '{}',
   })
 
-  // results is an array — one entry per obsession, each with scores[0] for the single label
+  // results: one entry per obsession, scores[j] = score for hypothesis j
   const items = Array.isArray(results) ? results : [results]
   let highestScore = 0
   let matchedObsession = null
   for (let i = 0; i < items.length; i++) {
-    const score = items[i].scores[0]
-    if (score > highestScore) {
-      highestScore = score
+    const maxScore = Math.max(...items[i].scores)
+    if (maxScore > highestScore) {
+      highestScore = maxScore
       matchedObsession = obsessions[i]
     }
   }

@@ -4,12 +4,9 @@
 //   b) A Google search query semantically matches a logged obsession.
 
 const ERP_PROMPTS = [
-  'Notice the urge without acting on it. What is the anxiety actually telling you?',
   'Your discomfort is temporary. What would happen if you sat with this feeling for 5 minutes?',
   'OCD demands certainty. Can you tolerate the uncertainty instead of seeking reassurance?',
   'Rate your anxiety 1–10. Research shows it peaks and then falls — can you wait for the drop?',
-  'What value are you protecting by not giving in? What matters more than the anxiety right now?',
-  'Avoidance teaches your brain the site is dangerous. What would you tell a friend in your position?',
   'Every time you resist a compulsion, you weaken the OCD pathway. This moment counts.',
 ]
 
