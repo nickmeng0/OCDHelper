@@ -69,14 +69,39 @@ async function handleSearchQuery(query, tabId) {
     const blockList = rawBlockList.filter(w => typeof w === 'string')
     if (!blockList.length) return
 
-    const words = tokenize(query)
-    const blockSet = new Set(blockList.map(w => w.toLowerCase()))
-    const matchedTerm = words.find(w => blockSet.has(w))
-    if (!matchedTerm) return
+    const lowerQuery = query.toLowerCase()
+    const queryWords = new Set(tokenize(query))
+    let matchedTerm = null
+    for (const term of blockList) {
+      const lowerTerm = term.toLowerCase()
+      const matched = lowerTerm.includes(' ')
+        ? lowerQuery.includes(lowerTerm)
+        : queryWords.has(lowerTerm)
+      if (matched) { matchedTerm = term; break }
+    }
+    if (matchedTerm) {
+      console.log(`[ERP] Query blocked: "${query}" matched keyword "${matchedTerm}"`)
+      const params = { site: 'google.com', mechanism: 'keyword', query, term: matchedTerm }
+      await chrome.tabs.update(tabId, { url: getInterventionUrl(params) })
+      return
+    }
 
-    console.log(`[ERP] Query blocked: "${query}" matched "${matchedTerm}"`)
-    const params = { site: 'google.com', mechanism: 'keyword', query, term: matchedTerm }
-    await chrome.tabs.update(tabId, { url: getInterventionUrl(params) })
+    // ── Mechanism 2: NLI entailment check ──────────────────────────────────────
+    // TODO: read obsessionLogs from storage
+    // const { obsessionLogs = [] } = await chrome.storage.local.get(['obsessionLogs'])
+    // const obsessions = obsessionLogs.map(log => log.text)
+
+    // TODO: send CHECK_ENTAILMENT to offscreen
+    // await ensureOffscreen()
+    // const entailResult = await sendToOffscreen({
+    //   type: 'CHECK_ENTAILMENT',
+    //   query,
+    //   obsessions,
+    // })
+
+    // TODO: if entailResult.blocked:
+    // const params = { site: 'google.com', mechanism: 'entailment', query, term: entailResult.matchedObsession }
+    // await chrome.tabs.update(tabId, { url: getInterventionUrl(params) })
   } catch (err) {
     console.warn('[ERP] handleSearchQuery error:', err.message)
   }

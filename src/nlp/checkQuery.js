@@ -10,9 +10,14 @@ import { tokenize } from './utils.js'
  * @returns {{ blocked: boolean, mechanism?: string, matchedTerm?: string }}
  */
 export function checkQuery(queryString, { blockList = [] } = {}) {
-  const words = tokenize(queryString)
-  const blockSet = new Set(blockList.map(w => w.toLowerCase()))
-  const matchedTerm = words.find(w => blockSet.has(w))
-  if (matchedTerm) return { blocked: true, mechanism: 'keyword', matchedTerm }
+  const lowerQuery = queryString.toLowerCase()
+  const queryWords = new Set(tokenize(queryString))
+  for (const term of blockList) {
+    const lowerTerm = term.toLowerCase()
+    const matched = lowerTerm.includes(' ')
+      ? lowerQuery.includes(lowerTerm)
+      : queryWords.has(lowerTerm)
+    if (matched) return { blocked: true, mechanism: 'keyword', matchedTerm: term }
+  }
   return { blocked: false }
 }

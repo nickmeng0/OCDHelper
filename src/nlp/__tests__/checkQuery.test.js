@@ -32,4 +32,14 @@ describe('checkQuery — keyword match', () => {
     expect(result.blocked).toBe(true)
     expect(result.matchedTerm).toBeDefined()
   })
+
+  it('matches a multi-word phrase as substring', () => {
+    const result = checkQuery('I searched for my car today', { blockList: ['my car'] })
+    expect(result).toEqual({ blocked: true, mechanism: 'keyword', matchedTerm: 'my car' })
+  })
+
+  it('does not match a phrase unless words appear contiguously', () => {
+    const result = checkQuery('my old blue car', { blockList: ['my car'] })
+    expect(result.blocked).toBe(false)
+  })
 })
