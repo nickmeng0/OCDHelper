@@ -24,9 +24,12 @@ function LogList({ logs, onDelete }) {
 
   return (
     <div>
-      <h2 style={{ fontSize: '1em', fontWeight: 600, color: '#1e1b4b', marginBottom: 14 }}>
+      <h2 style={{ fontSize: '1em', fontWeight: 600, color: '#1e1b4b', marginBottom: 6 }}>
         History <span style={{ fontWeight: 400, color: '#9ca3af' }}>({logs.length})</span>
       </h2>
+      <p style={{ fontSize: '0.78em', color: '#7c7c9a', lineHeight: 1.5, marginBottom: 14 }}>
+        Take note of any common themes, such as control, harm, health, etc.
+      </p>
 
       {[...logs].reverse().map(log => (
         <div key={log.id} style={{
